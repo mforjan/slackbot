@@ -3,7 +3,11 @@ logs
 *.log
 npm-debug.log*
 yarn-debug.log*
+<<<<<<< HEAD
 yarn-error.log
+=======
+yarn-error.log*
+>>>>>>> e54cd27ef5c3f22719d9961fe19361a1d0a5ad1a
 
 # Runtime data
 pids
@@ -57,5 +61,8 @@ typings/
 # dotenv environment variables file
 .env
 
+<<<<<<< HEAD
 # Client secret
 client_secret.json
+=======
+>>>>>>> e54cd27ef5c3f22719d9961fe19361a1d0a5ad1a
