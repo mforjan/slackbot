@@ -1,6 +1,8 @@
 var fs = require('fs');
 var readline = require('readline');
 var {google} = require('googleapis');
+const { RTMClient } = require('@slack/client');
+const token = process.env.SLACK_TOKEN;
 
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/calendar-nodejs-quickstart.json
@@ -16,8 +18,42 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
   }
   // Authorize a client with the loaded credentials, then call the
   // Google Calendar API.
-  authorize(JSON.parse(content), createEvent);
-  // authorize(JSON.parse(content), listEvents);
+  const rtm = new RTMClient(token);
+  rtm.start();
+
+  rtm.on('message', (message) => {
+
+    if ( (message.subtype && message.subtype === 'bot_message') ||
+    (!message.subtype && message.user === rtm.activeUserId) ) {
+      return;
+    }
+
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+    const words = message.text.split(' ')
+    const subject = words.slice(3).join(' ')
+
+    const todaysDate = new Date()
+    const today = days[todaysDate.getDay()];
+    const day = words[2]
+    const daystoAdd = (days.indexOf(day) - days.indexOf(today)) % 7
+
+    var date = new Date();
+    date.setDate(date.getDate() + daystoAdd);
+
+    if (words[0].toLowerCase() === 'remind'){
+      authorize(JSON.parse(content), createEvent, [subject, date]);
+      // authorize(JSON.parse(content), listEvents);
+      rtm.sendMessage('ok', message.channel)
+      .then((res) => {
+        console.log('Message sent: ', res.ts);
+        console.log(subject)
+      })
+      .catch(console.error);
+    }
+
+    console.log(`(channel:${message.channel}) ${message.user} says: ${message.text}`);
+  });
 });
 
 /**
@@ -27,7 +63,7 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
  * @param {Object} credentials The authorization client credentials.
  * @param {function} callback The callback to call with the authorized client.
  */
-function authorize(credentials, callback) {
+function authorize(credentials, callback, options) {
   var clientSecret = credentials.installed.client_secret;
   var clientId = credentials.installed.client_id;
   var redirectUrl = credentials.installed.redirect_uris[0];
@@ -39,7 +75,7 @@ function authorize(credentials, callback) {
       getNewToken(oauth2Client, callback);
     } else {
       oauth2Client.credentials = JSON.parse(token);
-      callback(oauth2Client);
+      callback(oauth2Client, options);
     }
   });
 }
@@ -126,15 +162,15 @@ function listEvents(auth) {
   });
 }
 
-function createEvent(auth, subject, date) {
+function createEvent(auth, options) {
   var calendar = google.calendar('v3');
   var newEvent = {
-    summary: subject,
+    summary: options[0],
     start: {
-      date: (new Date()).toISOString().split('T')[0]
+      date: options[1].toISOString().split('T')[0]
     },
     end: {
-      date: (new Date()).toISOString().split('T')[0]
+      date: options[1].toISOString().split('T')[0]
     }
   }
   calendar.events.insert({
