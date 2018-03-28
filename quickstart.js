@@ -31,18 +31,21 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
     const words = message.text.split(' ')
-    const subject = words.slice(3).join(' ')
+    const subject = words.slice(5).join(' ')
 
     const todaysDate = new Date()
     const today = days[todaysDate.getDay()];
     const day = words[2]
     const daystoAdd = (days.indexOf(day) - days.indexOf(today)) % 7
-
     var date = new Date();
     date.setDate(date.getDate() + daystoAdd);
 
+    let startTime = parseInt(words[3])
+    if (words[4] === 'PM') startTime += 12
+    let endTime = startTime + 1
+
     if (words[0].toLowerCase() === 'remind'){
-      authorize(JSON.parse(content), createEvent, [subject, date]);
+      authorize(JSON.parse(content), createEvent, [subject, date, startTime, endTime]);
       // authorize(JSON.parse(content), listEvents);
       rtm.sendMessage('ok', message.channel)
       .then((res) => {
@@ -164,13 +167,25 @@ function listEvents(auth) {
 
 function createEvent(auth, options) {
   var calendar = google.calendar('v3');
+  var start = options[1]
+  start.setHours(options[2])
+  start.setMinutes(0)
+  start.setSeconds(0)
+  console.log(start)
+  var startDate = start.toISOString()
+  var end = options[1]
+  end.setHours(options[3])
+  end.setMinutes(0)
+  end.setSeconds(0)
+  console.log(end)
+  var endDate = end.toISOString()
   var newEvent = {
     summary: options[0],
     start: {
-      date: options[1].toISOString().split('T')[0]
+      dateTime: startDate
     },
     end: {
-      date: options[1].toISOString().split('T')[0]
+      dateTime: endDate
     }
   }
   calendar.events.insert({
